@@ -16,7 +16,7 @@ Before answering, I had Claude look at the CSV itself, so its answers are based 
 | Request type | Rows | Is it a missed pickup? |
 |---|---:|---|
 | Trash - Curbside/Alley Missed Pickup | 15,028 | **Yes.** This is the main category. |
-| Trash - Backdoor | 2,629 | **Yes.** These are missed pickups for back-door service customers. About 77% of the descriptions say "missed" or "still out." |
+| Trash - Backdoor | 2,629 | **Yes.** These are missed pickups for back-door service customers. About 81% of the descriptions contain "miss" (as in "missed") or "still out." |
 | Trash Collection Complaint | 2,312 | **No by default.** Most are about crews, spills or rules, though 691 mention "miss." |
 | Damage to Property | 257 | **No.** These are mailboxes, walls and fluid leaks. |
 
@@ -54,9 +54,9 @@ These are the assumptions I plan to make:
 |---|---|
 | **Case and spaces don't matter.** Convert to upper case, trim, and turn repeated spaces into one. | This removes surface differences. |
 | **Only the street part counts.** Keep the text before the first comma and drop the city, state, ZIP and country. | Some rows have the full mailing address and some have only the street. This step alone cuts the distinct missed-pickup addresses from **12,384 to 11,192**. |
-| **Street suffixes mean the same thing.** ROAD becomes RD, DRIVE becomes DR, AVENUE becomes AVE, and so on. Periods are removed. | "Brush Hill Road" and "Brush Hill Rd" are one premises. |
+| **Street suffixes mean the same thing.** ROAD becomes RD, DRIVE becomes DR, AVENUE becomes AVE, and so on. Periods are removed. | "3847 CROSS CREEK ROAD" and "3847 CROSS CREEK RD" are one premises. The data has 15 pairs like this. |
 | **Different units are different premises.** "320 OLD HICKORY BLVD 3024" and "...2111" are kept separate. | The contract fines repeat misses at the *same premises*. Two apartments aren't the same customer. (This is the one I'm least sure of. It could also be read as one building.) |
-| **Same text means same place.** I won't try to fix typos or do fuzzy matching. | Fuzzy matching could merge two real neighbors, like 1000 N 14TH ST and 1000 N 7TH ST. |
+| **Same text means same place.** I won't try to fix typos or do fuzzy matching. | Fuzzy matching could merge two different real houses, like 1000 N 14TH ST and 1000 N 7TH ST. |
 | **The lat/long columns are a check, not the key.** | 119 coordinate points cover more than one address, such as apartment complexes, so coordinates alone would over-merge. |
 
 ---
@@ -65,7 +65,7 @@ These are the assumptions I plan to make:
 
 **These could cause over-counting (fines that are too high):**
 
-- **Duplicate reports of one miss.** 295 missed-pickup rows repeat an address that already has a report on the same day, for example when a resident calls twice or two neighbors report it. A $200 fine should go with one missed pickup, not one phone call. **Plan:** count at most one miss per address per day.
+- **Duplicate reports of one miss.** After standardizing addresses, 366 missed-pickup rows repeat an address that already has a report on the same day, for example when a resident calls twice or two neighbors report it. A $200 fine should go with one missed pickup, not one phone call. **Plan:** count at most one miss per address per day.
 - **The wrong hauler.** The fine is part of Metro's contract with **Red River**, but the data also has METRO (3,580 rows across "METRO" and "Metro") and WASTE IND (1,350 rows). Fining those would charge Red River for misses it didn't make. **Plan:** count only Red River rows, and make "Metro" and "METRO" the same value.
 - **Counting complaints or damage reports as misses** would inflate the totals (see question 1).
 
@@ -74,7 +74,7 @@ These are the assumptions I plan to make:
 - **Unstandardized addresses.** The same house split across two spellings looks like two "first misses," which hides real repeats. This is the main reason question 2 matters.
 - **A blank hauler.** 901 rows have no `Trash Hauler`. If I filter to Red River, these drop out, even though some are probably Red River routes. **Plan:** report how many there are. I could fill them in from another row at the same address or on the same `Trash Route`.
 - **Whole-street misses.** About 1,900 descriptions say things like "the entire street was missed" or "whole court." One request then covers many houses, but it can only be fined once, at the one address it lists. The data can't fix this, so I'll name it as a limitation.
-- **Missing addresses.** 9 rows have no address, and 48 have no house number (for example "XAVIER DR"). These can't be matched reliably and should be left out of the repeat counts and reported.
+- **Missing addresses.** Among missed-pickup rows, 9 have no address and 39 more have no house number (for example "XAVIER DR"). These can't be matched reliably and should be left out of the repeat counts and reported.
 
 **Other cases:**
 
